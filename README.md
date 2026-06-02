@@ -3,7 +3,7 @@
 Bu proje, GrapesJS kütüphanesinin projeye dahil edilerek bir web sayfası oluşturucu (page builder) tasarlanması ve yapılan tasarımların Node.js (Express) ile MySQL veritabanına kaydedilip geri yüklenmesi işlemlerini içerir. Sistem **Docker** üzerinde çalışacak şekilde yapılandırılmıştır.
 
 ## Github Linki
-**Github Proje Adresi:** [Buraya Github Repo Linkinizi Yapıştırın]
+**Github Proje Adresi:** https://github.com/messrseylull/grapesjs-page-builder
 
 ---
 
