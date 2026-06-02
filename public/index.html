@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>GrapesJS Web Page Builder</title>
+  
+  <!-- GrapesJS Core CSS and JS -->
+  <link href="https://unpkg.com/grapesjs/dist/css/grapes.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/grapesjs"></script>
+  
+  <!-- GrapesJS Basic Blocks Plugin (Opsiyonel ama kullanışlı) -->
+  <script src="https://unpkg.com/grapesjs-blocks-basic"></script>
+
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #gjs {
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="gjs">
+    <!-- GrapesJS Editörü Buraya Yüklenecek -->
+  </div>
+
+  <script>
+    const editor = grapesjs.init({
+      container: '#gjs',
+      fromElement: true,
+      height: '100%',
+      width: 'auto',
+      
+      // Temel blokları yüklemek için
+      plugins: ['gjs-blocks-basic'],
+      pluginsOpts: {
+        'gjs-blocks-basic': {}
+      },
+
+      // Storage Manager Ayarları
+      storageManager: {
+        type: 'remote', // Veritabanı/Uzak sunucuya kayıt
+        stepsBeforeSave: 3, // Otomatik kayıt öncesi kaç değişiklik bekleneceği (isteğe bağlı)
+        options: {
+          remote: {
+            urlStore: '/api/sayfa', // Kaydetme endpointi
+            urlLoad: '/api/sayfa',  // Yükleme endpointi
+            
+            // İstek türünü belirleme
+            fetchOptions: opts => (opts.method === 'POST' ? { method: 'POST' } : {}),
+            
+            // Gelen cevabı yakalama
+            onStore: data => {
+              console.log('Sunucuya gönderilecek veri:', data);
+              return data;
+            },
+            onLoad: result => {
+              console.log('Sunucudan gelen veri:', result);
+              return result;
+            }
+          }
+        }
+      }
+    });
+
+    // --- Manuel Kayıt Butonu Ekleme ---
+    
+    // GrapesJS panelinde "options" kısmına bir buton ekleyelim
+    editor.Panels.addButton('options', {
+      id: 'save-db',
+      className: 'fa fa-floppy-o', // Disket ikonu
+      command: 'save-db',
+      attributes: { title: 'Veritabanına Kaydet (Manuel)' }
+    });
+
+    // Kaydetme komutunun çalıştırılması
+    editor.Commands.add('save-db', {
+      run: function(editor, sender) {
+        if (sender) sender.set('active', 0); // Butonu tıklanmamış duruma getir
+        editor.store(res => {
+          alert('Tasarım başarıyla veritabanına kaydedildi!');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

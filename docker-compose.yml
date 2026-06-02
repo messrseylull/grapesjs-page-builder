@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: grapesjs_app_container
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db
+      - DB_USER=grapesjs_user
+      - DB_PASSWORD=grapesjs_pass
+      - DB_NAME=grapesjs_db
+
+  db:
+    image: mysql:8.0
+    container_name: grapesjs_db_container
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: grapesjs_db
+      MYSQL_USER: grapesjs_user
+      MYSQL_PASSWORD: grapesjs_pass
+      MYSQL_ROOT_PASSWORD: root_password_123
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password_123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
