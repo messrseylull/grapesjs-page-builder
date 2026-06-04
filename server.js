@@ -32,12 +32,13 @@ db.connect((err) => {
   }
   console.log('MySQL veritabanına bağlanıldı.');
 
-  // Create table if not exists
+  // Create table if not exists (added proje_json for GrapesJS state)
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS sayfalar (
       id INT AUTO_INCREMENT PRIMARY KEY,
       html_icerik LONGTEXT,
-      css_icerik LONGTEXT
+      css_icerik LONGTEXT,
+      proje_json LONGTEXT
     )
   `;
   db.query(createTableQuery, (err, result) => {
@@ -45,6 +46,10 @@ db.connect((err) => {
         console.error("Tablo oluşturulurken hata:", err);
     } else {
         console.log('sayfalar tablosu hazır.');
+        // Ensure proje_json column exists if table was already created
+        db.query("ALTER TABLE sayfalar ADD COLUMN proje_json LONGTEXT", (err) => {
+           // Ignore error if column already exists
+        });
     }
   });
 });
@@ -53,26 +58,24 @@ db.connect((err) => {
 
 // POST /api/sayfa (Save data)
 app.post('/api/sayfa', (req, res) => {
-  // GrapesJS sends data as defined in storage manager.
-  // We extract 'gjs-html' and 'gjs-css' (default prefixes)
+  console.log("GrapesJS'ten gelen veri:", Object.keys(req.body));
+  
   const html_icerik = req.body['gjs-html'] || '';
   const css_icerik = req.body['gjs-css'] || '';
+  const proje_json = JSON.stringify(req.body); // Save entire state to be able to load it back
 
-  // Get the first record to update, or insert if no record exists
   db.query('SELECT * FROM sayfalar LIMIT 1', (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
 
     if (results.length > 0) {
-      // Update existing record
-      const updateQuery = 'UPDATE sayfalar SET html_icerik = ?, css_icerik = ? WHERE id = ?';
-      db.query(updateQuery, [html_icerik, css_icerik, results[0].id], (err, result) => {
+      const updateQuery = 'UPDATE sayfalar SET html_icerik = ?, css_icerik = ?, proje_json = ? WHERE id = ?';
+      db.query(updateQuery, [html_icerik, css_icerik, proje_json, results[0].id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.status(200).json({ message: 'Başarıyla güncellendi.' });
       });
     } else {
-      // Insert new record
-      const insertQuery = 'INSERT INTO sayfalar (html_icerik, css_icerik) VALUES (?, ?)';
-      db.query(insertQuery, [html_icerik, css_icerik], (err, result) => {
+      const insertQuery = 'INSERT INTO sayfalar (html_icerik, css_icerik, proje_json) VALUES (?, ?, ?)';
+      db.query(insertQuery, [html_icerik, css_icerik, proje_json], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.status(200).json({ message: 'Başarıyla kaydedildi.', id: result.insertId });
       });
@@ -82,17 +85,17 @@ app.post('/api/sayfa', (req, res) => {
 
 // GET /api/sayfa (Load data)
 app.get('/api/sayfa', (req, res) => {
-  db.query('SELECT html_icerik, css_icerik FROM sayfalar LIMIT 1', (err, results) => {
+  db.query('SELECT proje_json FROM sayfalar LIMIT 1', (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    if (results.length > 0) {
-      // Return data in the format GrapesJS expects for remote loading
-      res.status(200).json({
-        'gjs-html': results[0].html_icerik,
-        'gjs-css': results[0].css_icerik
-      });
+    if (results.length > 0 && results[0].proje_json) {
+      try {
+        const data = JSON.parse(results[0].proje_json);
+        res.status(200).json(data);
+      } catch (e) {
+        res.status(200).json({});
+      }
     } else {
-      // Return empty JSON if no data exists
       res.status(200).json({});
     }
   });
